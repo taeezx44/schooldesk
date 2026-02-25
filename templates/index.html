@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SchoolDesk — {{ username }}</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#f5c842">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SchoolDesk">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;800&family=IBM+Plex+Sans+Thai:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #161923;
+    --surface2: #1e2330;
+    --border: #252a36;
+    --accent: #f5c842;
+    --accent2: #3dd6c8;
+    --danger: #f87171;
+    --success: #4ade80;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── Nav ── */
+  nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.3rem;
+    color: var(--accent);
+  }
+  .logo span { color: var(--accent2); }
+
+  .nav-right {
+    display: flex; align-items: center; gap: 16px;
+  }
+  .nav-user {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .nav-user strong { color: var(--text); }
+
+  .btn-logout {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+  .btn-nav-auth {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    transition: all 0.2s;
+  }
+  .btn-nav-auth:hover { border-color: var(--muted); }
+  .btn-nav-auth.accent {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0d0f14;
+    font-weight: 600;
+  }
+  .btn-nav-auth.accent:hover { opacity: 0.88; }
+
+  /* ── Flash Bar ── */
+  .flash-bar {
+    position: fixed;
+    top: 68px; left: 50%; transform: translateX(-50%);
+    z-index: 200;
+    display: flex; flex-direction: column; gap: 8px;
+    min-width: 320px;
+  }
+  .flash-msg {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 0.88rem;
+    animation: slideDown 0.3s ease;
+  }
+  .flash-msg.error { border-color: var(--danger); color: var(--danger); }
+  .flash-msg.success { border-color: var(--success); color: var(--success); }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    animation: fadeInBg 0.2s ease;
+  }
+  .modal-overlay.open { display: flex; }
+
+  @keyframes fadeInBg {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 32px 36px;
+    width: 380px;
+    max-width: 95vw;
+    animation: popUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+  }
+  @keyframes popUp {
+    from { opacity: 0; transform: scale(0.92) translateY(16px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.15rem;
+  }
+  .modal-close {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 6px;
+    width: 28px; height: 28px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .modal-close:hover { border-color: var(--danger); color: var(--danger); }
+
+  .modal-field { margin-bottom: 16px; }
+
+  .form-error {
+    background: rgba(248,113,113,0.1);
+    border: 1px solid rgba(248,113,113,0.3);
+    color: var(--danger);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.83rem;
+    margin-bottom: 16px;
+  }
+
+  .btn-modal-submit {
+    width: 100%;
+    background: var(--accent);
+    color: #0d0f14;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn-modal-submit:hover { opacity: 0.88; transform: translateY(-1px); }
+
+  .modal-switch {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 0.83rem;
+    color: var(--muted);
+  }
+  .modal-switch a { color: var(--accent2); text-decoration: none; font-weight: 500; }
+  .modal-switch a:hover { text-decoration: underline; }
+
+  /* ── Layout ── */
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+
+  @media (max-width: 768px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  /* ── Section Card ── */
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .section-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .badge {
+    background: var(--surface2);
+    color: var(--muted);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .btn-add {
+    background: var(--accent);
+    color: #0d0f14;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: 'Syne', sans-serif;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .btn-add:hover { opacity: 0.85; }
+
+  /* ── Form Panel ── */
+  .form-panel {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px;
+    display: none;
+    animation: fadeIn 0.2s ease;
+  }
+  .form-panel.open { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid .full { grid-column: 1 / -1; }
+
+  label.form-label {
+    display: block;
+    font-size: 0.73rem;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 5px;
+  }
+
+  input[type=text], input[type=time], input[type=date], input[type=password], select, textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 60px; }
+
+  select option { background: var(--surface); }
+
+  .form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    justify-content: flex-end;
+  }
+
+  .btn-cancel {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-cancel:hover { border-color: var(--muted); color: var(--text); }
+
+  .btn-submit {
+    background: var(--accent);
+    color: #0d0f14;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .btn-submit:hover { opacity: 0.85; }
+
+  /* ── Items ── */
+  .items-list { padding: 8px 0; }
+
+  .item {
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    transition: background 0.15s;
+  }
+  .item:last-child { border-bottom: none; }
+  .item:hover { background: rgba(255,255,255,0.02); }
+
+  .item-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-top: 7px;
+    flex-shrink: 0;
+  }
+  .item-dot.done { background: var(--muted); }
+  .item-dot.hw { background: var(--accent2); }
+
+  .item-body { flex: 1; min-width: 0; }
+
+  .item-title {
+    font-weight: 500;
+    font-size: 0.92rem;
+    margin-bottom: 2px;
+  }
+  .item-title.done-text {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+
+  .item-meta {
+    font-size: 0.78rem;
+    color: var(--muted);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .meta-chip {
+    background: var(--surface2);
+    border-radius: 4px;
+    padding: 1px 7px;
+  }
+
+  .item-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .btn-icon {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 7px;
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 0.75rem;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .btn-icon:hover.edit { border-color: var(--accent); color: var(--accent); }
+  .btn-icon:hover.del { border-color: var(--danger); color: var(--danger); }
+  .btn-icon:hover.done-btn { border-color: var(--success); color: var(--success); }
+
+  /* inline edit form */
+  .edit-form-panel {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 10px 24px;
+    display: none;
+  }
+  .edit-form-panel.open { display: block; }
+
+  /* ── Empty State ── */
+  .empty {
+    text-align: center;
+    padding: 36px 24px;
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  .empty-icon { font-size: 2rem; margin-bottom: 8px; }
+
+  /* ── Day labels ── */
+  .day-header {
+    padding: 6px 24px 2px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    margin-top: 4px;
+  }
+  .day-header:first-child { margin-top: 0; }
+
+  .overdue { color: var(--danger) !important; }
+  .due-soon { color: var(--accent) !important; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">School<span>Desk</span></div>
+  <div class="nav-right">
+    {% if username %}
+      <span class="nav-user">สวัสดี, <strong>{{ username }}</strong></span>
+      <a href="{{ url_for('logout') }}" class="btn-logout">ออกจากระบบ</a>
+    {% else %}
+      <button class="btn-nav-auth" onclick="openModal('login-modal')">เข้าสู่ระบบ</button>
+      <button class="btn-nav-auth accent" onclick="openModal('register-modal')">สมัครสมาชิก</button>
+    {% endif %}
+  </div>
+</nav>
+
+<!-- ── Flash Messages ── -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-bar">
+      {% for cat, msg in messages %}
+        <div class="flash-msg {{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- ── Login Modal ── -->
+<div class="modal-overlay" id="login-modal" onclick="closeModalOutside(event, 'login-modal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">เข้าสู่ระบบ</div>
+      <button class="modal-close" onclick="closeModal('login-modal')">✕</button>
+    </div>
+    {% if login_error %}
+      <div class="form-error">{{ login_error }}</div>
+    {% endif %}
+    <form method="POST" action="{{ url_for('login') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-field">
+        <label class="form-label">ชื่อผู้ใช้</label>
+        <input type="text" name="username" required placeholder="กรอกชื่อผู้ใช้" autocomplete="username">
+      </div>
+      <div class="modal-field">
+        <label class="form-label">รหัสผ่าน</label>
+        <input type="password" name="password" required placeholder="กรอกรหัสผ่าน" autocomplete="current-password">
+      </div>
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <button type="submit" class="btn-modal-submit">เข้าสู่ระบบ</button>
+    </form>
+    <div class="modal-switch">
+      ยังไม่มีบัญชี? <a href="#" onclick="switchModal('login-modal','register-modal')">สมัครสมาชิก</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Register Modal ── -->
+<div class="modal-overlay" id="register-modal" onclick="closeModalOutside(event, 'register-modal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">สมัครสมาชิก</div>
+      <button class="modal-close" onclick="closeModal('register-modal')">✕</button>
+    </div>
+    {% if register_error %}
+      <div class="form-error">{{ register_error }}</div>
+    {% endif %}
+    <form method="POST" action="{{ url_for('register') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-field">
+        <label class="form-label">ชื่อผู้ใช้</label>
+        <input type="text" name="username" required placeholder="ตั้งชื่อผู้ใช้" autocomplete="username">
+      </div>
+      <div class="modal-field">
+        <label class="form-label">รหัสผ่าน</label>
+        <input type="password" name="password" required placeholder="ตั้งรหัสผ่าน" autocomplete="new-password">
+      </div>
+      <div class="modal-field">
+        <label class="form-label">ยืนยันรหัสผ่าน</label>
+        <input type="password" name="password2" required placeholder="กรอกรหัสผ่านอีกครั้ง" autocomplete="new-password">
+      </div>
+      <button type="submit" class="btn-modal-submit">สมัครสมาชิก</button>
+    </form>
+    <div class="modal-switch">
+      มีบัญชีแล้ว? <a href="#" onclick="switchModal('register-modal','login-modal')">เข้าสู่ระบบ</a>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <!-- ── Schedule Section ── -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-title">
+        📅 ตารางเรียน
+        <span class="badge">{{ schedule|length }} วิชา</span>
+      </div>
+      <button class="btn-add" onclick="togglePanel('sched-form')">+ เพิ่มวิชา</button>
+    </div>
+
+    <!-- Add Form -->
+    <div class="form-panel" id="sched-form">
+      <form method="POST" action="{{ url_for('add_class') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+          <div>
+            <label class="form-label">วัน</label>
+            <select name="day" required>
+              <option value="">เลือกวัน</option>
+              {% for d in ['จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์','อาทิตย์'] %}
+              <option value="{{ d }}">{{ d }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="form-label">เวลา</label>
+            <input type="time" name="time" required>
+          </div>
+          <div>
+            <label class="form-label">ชื่อวิชา</label>
+            <input type="text" name="course" required placeholder="เช่น คณิตศาสตร์">
+          </div>
+          <div>
+            <label class="form-label">ห้อง (ไม่บังคับ)</label>
+            <input type="text" name="room" placeholder="เช่น ห้อง 301">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" onclick="togglePanel('sched-form')">ยกเลิก</button>
+          <button type="submit" class="btn-submit">บันทึก</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- List -->
+    <div class="items-list">
+      {% if schedule %}
+        {% set days = ['จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์','อาทิตย์'] %}
+        {% set ns = namespace(last_day='') %}
+        {% for item in schedule | sort(attribute='day') %}
+          {% if item.day != ns.last_day %}
+            <div class="day-header">วัน{{ item.day }}</div>
+            {% set ns.last_day = item.day %}
+          {% endif %}
+          <div class="item" id="s-item-{{ item.id }}">
+            <div class="item-dot"></div>
+            <div class="item-body">
+              <div class="item-title">{{ item.course }}</div>
+              <div class="item-meta">
+                <span class="meta-chip">🕐 {{ item.time }}</span>
+                {% if item.room %}<span class="meta-chip">📍 {{ item.room }}</span>{% endif %}
+              </div>
+            </div>
+            <div class="item-actions">
+              <button class="btn-icon edit" title="แก้ไข" onclick="toggleEdit('sedit-{{ item.id }}')">✏️</button>
+              <form method="POST" action="{{ url_for('delete_class', cid=item.id) }}" style="display:inline" onsubmit="return confirm('ลบวิชานี้?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-icon del" title="ลบ">🗑️</button>
+              </form>
+            </div>
+          </div>
+          <!-- Inline Edit -->
+          <div class="edit-form-panel" id="sedit-{{ item.id }}">
+            <form method="POST" action="{{ url_for('edit_class', cid=item.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="form-grid">
+                <div>
+                  <label class="form-label">วัน</label>
+                  <select name="day" required>
+                    {% for d in ['จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์','อาทิตย์'] %}
+                    <option value="{{ d }}" {% if item.day==d %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">เวลา</label>
+                  <input type="time" name="time" value="{{ item.time }}" required>
+                </div>
+                <div>
+                  <label class="form-label">ชื่อวิชา</label>
+                  <input type="text" name="course" value="{{ item.course }}" required>
+                </div>
+                <div>
+                  <label class="form-label">ห้อง</label>
+                  <input type="text" name="room" value="{{ item.room or '' }}">
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn-cancel" onclick="toggleEdit('sedit-{{ item.id }}')">ยกเลิก</button>
+                <button type="submit" class="btn-submit">บันทึกการเปลี่ยนแปลง</button>
+              </div>
+            </form>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty">
+          <div class="empty-icon">📚</div>
+          ยังไม่มีวิชาในตาราง<br>กด "เพิ่มวิชา" เพื่อเริ่มต้น
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── Homework Section ── -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-title">
+        📝 การบ้าน
+        <span class="badge">{{ homework | selectattr('done', 'equalto', 0) | list | length }} ค้างอยู่</span>
+      </div>
+      <button class="btn-add" onclick="togglePanel('hw-form')">+ เพิ่มการบ้าน</button>
+    </div>
+
+    <!-- Add Form -->
+    <div class="form-panel" id="hw-form">
+      <form method="POST" action="{{ url_for('add_homework') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+          <div>
+            <label class="form-label">วิชา</label>
+            <input type="text" name="subject" required placeholder="เช่น ฟิสิกส์">
+          </div>
+          <div>
+            <label class="form-label">กำหนดส่ง</label>
+            <input type="date" name="due" required>
+          </div>
+          <div class="full">
+            <label class="form-label">รายละเอียด</label>
+            <textarea name="description" placeholder="รายละเอียดการบ้าน..."></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" onclick="togglePanel('hw-form')">ยกเลิก</button>
+          <button type="submit" class="btn-submit">บันทึก</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- List -->
+    <div class="items-list">
+      {% if homework %}
+        {% for item in homework | sort(attribute='due') %}
+          {% set today = now_date %}
+          {% set is_done = item.done == 1 %}
+          <div class="item">
+            <div class="item-dot hw {% if is_done %}done{% endif %}"></div>
+            <div class="item-body">
+              <div class="item-title {% if is_done %}done-text{% endif %}">{{ item.subject }}</div>
+              <div class="item-meta">
+                <span class="meta-chip {% if not is_done and item.due < today %}overdue{% elif not is_done and item.due == today %}due-soon{% endif %}">
+                  📅 {{ item.due }}
+                  {% if not is_done %}
+                    {% if item.due < today %} — เลยกำหนด!{% elif item.due == today %} — วันนี้!{% endif %}
+                  {% endif %}
+                </span>
+              </div>
+              {% if item.description %}
+                <div style="font-size:0.8rem; color:var(--muted); margin-top:4px;">{{ item.description }}</div>
+              {% endif %}
+            </div>
+            <div class="item-actions">
+              <form method="POST" action="{{ url_for('toggle_homework', hid=item.id) }}" style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-icon done-btn" title="{% if is_done %}ยังไม่เสร็จ{% else %}เสร็จแล้ว{% endif %}">
+                  {% if is_done %}↩️{% else %}✅{% endif %}
+                </button>
+              </form>
+              <button class="btn-icon edit" title="แก้ไข" onclick="toggleEdit('hedit-{{ item.id }}')">✏️</button>
+              <form method="POST" action="{{ url_for('delete_homework', hid=item.id) }}" style="display:inline" onsubmit="return confirm('ลบการบ้านนี้?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-icon del" title="ลบ">🗑️</button>
+              </form>
+            </div>
+          </div>
+          <!-- Inline Edit -->
+          <div class="edit-form-panel" id="hedit-{{ item.id }}">
+            <form method="POST" action="{{ url_for('edit_homework', hid=item.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="form-grid">
+                <div>
+                  <label class="form-label">วิชา</label>
+                  <input type="text" name="subject" value="{{ item.subject }}" required>
+                </div>
+                <div>
+                  <label class="form-label">กำหนดส่ง</label>
+                  <input type="date" name="due" value="{{ item.due }}" required>
+                </div>
+                <div class="full">
+                  <label class="form-label">รายละเอียด</label>
+                  <textarea name="description">{{ item.description or '' }}</textarea>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn-cancel" onclick="toggleEdit('hedit-{{ item.id }}')">ยกเลิก</button>
+                <button type="submit" class="btn-submit">บันทึกการเปลี่ยนแปลง</button>
+              </div>
+            </form>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty">
+          <div class="empty-icon">🎉</div>
+          ไม่มีการบ้านค้างอยู่เลย!
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</main>
+
+<script>
+  function togglePanel(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle('open');
+  }
+  function toggleEdit(id) {
+    document.querySelectorAll('.edit-form-panel.open').forEach(p => {
+      if (p.id !== id) p.classList.remove('open');
+    });
+    document.getElementById(id).classList.toggle('open');
+  }
+
+  // Modal
+  function openModal(id) {
+    document.getElementById(id).classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function switchModal(from, to) {
+    closeModal(from);
+    setTimeout(() => openModal(to), 150);
+  }
+  function closeModalOutside(e, id) {
+    if (e.target.id === id) closeModal(id);
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id));
+    }
+  });
+
+  // Auto-open modal if there was an error
+  {% if login_error %}openModal('login-modal');{% endif %}
+  {% if register_error %}openModal('register-modal');{% endif %}
+
+  // Auto-dismiss flash messages
+  setTimeout(() => {
+    document.querySelectorAll('.flash-msg').forEach(el => {
+      el.style.transition = 'opacity 0.5s';
+      el.style.opacity = '0';
+      setTimeout(() => el.remove(), 500);
+    });
+  }, 3500);
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('SW registered'))
+        .catch(err => console.log('SW error:', err));
+    });
+  }
+</script>
+</body>
+</html>
